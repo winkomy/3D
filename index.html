@@ -791,7 +791,7 @@ function exportXls(){const t=bomClientRows();let rows=&quot;&quot;;
     '</body></html>';
   const a=document.createElement(&quot;a&quot;);a.href=URL.createObjectURL(new Blob([html],{type:&quot;application/vnd.ms-excel&quot;}));a.download=&quot;BOM-&quot;+(S.cols*4)+&quot;x&quot;+(S.rows*4)+&quot;x&quot;+(S.height*4)+&quot;.xls&quot;;a.click();
 }
-function renderBOM(){
+function renderBOM(){ 
   const b=bom();bomNormalize();
   const lines=effectiveBom();
   let grand=0,rows=&quot;&quot;;
