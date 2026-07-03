@@ -301,6 +301,7 @@ react-dom/cjs/react-dom.production.min.js:
         <label class=&quot;chk&quot;><input type=&quot;checkbox&quot; id=&quot;roofChk&quot; checked> Roof cover</label>
         <label class=&quot;chk&quot;><input type=&quot;checkbox&quot; id=&quot;footChk&quot;> Show footprint</label>
         <label class=&quot;chk&quot;><input type=&quot;checkbox&quot; id=&quot;dimChk&quot; checked> Dimensions &amp;amp; labels</label>
+        <label class=&quot;chk&quot;><input type=&quot;checkbox&quot; id=&quot;halfStayChk&quot;> Half angle stays (mirror)</label>
       </div>
 
       <div class=&quot;panel&quot; data-step=&quot;2&quot;><h2>Placed items</h2><div id=&quot;placedList&quot;></div></div>
@@ -356,7 +357,7 @@ const LOGO={
 const LABEL={manhole:&quot;Manhole&quot;,vent:&quot;Air vent&quot;,nozzle:&quot;Nozzle&quot;,ladder:&quot;Ladder&quot;};
 
 const S={cols:6,rows:3,height:3,az:36,pitch:56,zoom:1,panX:0,panY:0,
-  cutaway:true,roof:true,footprint:false,dims:true,
+  cutaway:true,roof:true,footprint:false,dims:true,halfStay:false,
   editLvl:1,stayDbl:false,stayType:&quot;auto&quot;,levels:{},levelsOn:{},full:true,lshape:true,pmode:&quot;stay&quot;,parts:[],blocks:[],labels:[],lines:[],circles:[],sgl:&quot;#d9a022&quot;,dblA:&quot;#d23b3b&quot;,dblB:&quot;#2563eb&quot;,pcol:&quot;#1f9e57&quot;,
   items:[{id:&quot;i1&quot;,type:&quot;manhole&quot;,c:1,r:1.5,size:0.5},{id:&quot;i2&quot;,type:&quot;vent&quot;,c:4.5,r:1},{id:&quot;i3&quot;,type:&quot;nozzle&quot;,face:&quot;N&quot;,i:1,k:1,spot:&quot;center&quot;},{id:&quot;i4&quot;,type:&quot;ladder&quot;,face:&quot;E&quot;,pos:6}]};
 function initLevels(){for(let i=1;i<=S.height;i++){if(!S.levels[i])S.levels[i]={};if(!(i in S.levelsOn))S.levelsOn[i]=true;}Object.keys(S.levelsOn).forEach(k=>{if(+k>S.height){delete S.levelsOn[k];delete S.levels[k];}});if(S.editLvl>S.height)S.editLvl=S.height;}
@@ -535,8 +536,9 @@ function render(){const{cols,rows,height:Hn}=S;const A=S.az*Math.PI/180,sinA=Mat
     if(S.lshape&amp;&amp;!postSet[i+&quot;,&quot;+j])continue;
     const isO=S.cutaway&amp;&amp;!S.lshape&amp;&amp;i===oc&amp;&amp;j===orow;
     s+=L3(proj(i,j,0),proj(i,j,Hn),isO?COL.grid:COL.ink,isO?0.8:1.6,isO?0.6:1);}}
-  // level-linked stays
-  for(let i=1;i<=Hn;i++){if(!(S.full||S.levelsOn[i]))continue;const z=i;for(const[k,v]of Object.entries(S.levels[i]||{})){const[a,b]=parseKey(k);s+=stay3(proj(a[0],a[1],z),proj(b[0],b[1],z),v);}}
+  // level-linked stays (optionally only the near half — the pattern mirrors across the tank)
+  {const along=cols>=rows,mid=(along?cols:rows)/2;
+  for(let i=1;i<=Hn;i++){if(!(S.full||S.levelsOn[i]))continue;const z=i;for(const[k,v]of Object.entries(S.levels[i]||{})){const[a,b]=parseKey(k);if(S.halfStay){const m=along?(a[0]+b[0])/2:(a[1]+b[1])/2;if(m>mid+1e-6)continue;}s+=stay3(proj(a[0],a[1],z),proj(b[0],b[1],z),v);}}}
   // ladders
   if(!S.lshape)for(const f of S.items.filter(x=>x.type===&quot;ladder&quot;)){let c,r,nx=0,ny=0,tx=0,ty=0;const u=(f.pos||0)/PANEL_FT;if(f.face===&quot;N&quot;){c=u;r=0;ny=-1;tx=1;}else if(f.face===&quot;S&quot;){c=u;r=rows;ny=1;tx=1;}else if(f.face===&quot;W&quot;){c=0;r=u;nx=-1;ty=1;}else{c=cols;r=u;nx=1;ty=1;}const off=0.12,hw=((f.wid||1.8)/2)/PANEL_FT,top=Hn+0.22;const rc=(k,z)=>proj(c+nx*off+tx*hw*k,r+ny*off+ty*hw*k,z);s+=L3(rc(1,0),rc(1,top),&quot;#46515c&quot;,2.4);s+=L3(rc(-1,0),rc(-1,top),&quot;#46515c&quot;,2.4);const n=Math.max(3,Math.round(Hn*PANEL_FT/16));for(let i=0;i<=n;i++){const z=Hn*i/n;s+=L3(rc(1,z),rc(-1,z),&quot;#5b6672&quot;,1.5);}const mid=proj(c+nx*off,r+ny*off,Hn*0.5);s+=`<circle class=&quot;fit&quot; cx=&quot;${mid.x.toFixed(1)}&quot; cy=&quot;${mid.y.toFixed(1)}&quot; r=&quot;13&quot; fill=&quot;transparent&quot; data-item=&quot;${f.id}&quot; style=&quot;cursor:grab&quot;/>`;}
   // nozzles (circle)
@@ -615,7 +617,7 @@ function editLvlBtns(){const box=document.getElementById(&quot;editLvls&quot;);i
 function viewLvlList(){const box=document.getElementById(&quot;viewLvls&quot;);if(box)box.innerHTML='<p class=&quot;hint&quot; style=&quot;font-size:11px;margin:0&quot;>Toggle the 👁 on each level (in <b>Plan levels</b>) to show or hide it here in 3D.</p>';}
 document.querySelectorAll(&quot;[data-d]&quot;).forEach(b=>b.addEventListener(&quot;click&quot;,()=>{commit();S[b.dataset.d]+=+b.dataset.v;clampSize();initLevels();fixItems();sizeVals();editLvlBtns();viewLvlList();drawPlan();render();}));
 const bind=(id,k,after)=>{const el=document.getElementById(id);el.checked=S[k];el.addEventListener(&quot;change&quot;,()=>{S[k]=el.checked;render();if(after)after();});};
-bind(&quot;cutChk&quot;,&quot;cutaway&quot;);bind(&quot;roofChk&quot;,&quot;roof&quot;);bind(&quot;footChk&quot;,&quot;footprint&quot;);bind(&quot;dimChk&quot;,&quot;dims&quot;);bind(&quot;lshapeChk&quot;,&quot;lshape&quot;);
+bind(&quot;cutChk&quot;,&quot;cutaway&quot;);bind(&quot;roofChk&quot;,&quot;roof&quot;);bind(&quot;footChk&quot;,&quot;footprint&quot;);bind(&quot;dimChk&quot;,&quot;dims&quot;);bind(&quot;lshapeChk&quot;,&quot;lshape&quot;);bind(&quot;halfStayChk&quot;,&quot;halfStay&quot;);
 document.getElementById(&quot;fullChk&quot;).addEventListener(&quot;change&quot;,(e)=>{S.full=e.target.checked;editLvlBtns();viewLvlList();render();drawPlan();});
 document.getElementById(&quot;sgSingle&quot;).addEventListener(&quot;click&quot;,()=>{S.stayDbl=false;sgsync();});
 document.getElementById(&quot;sgDouble&quot;).addEventListener(&quot;click&quot;,()=>{S.stayDbl=true;sgsync();});
@@ -671,7 +673,7 @@ function bom(){const L=S.cols,Wd=S.rows,H=S.height,ru=Math.ceil,mx=Math.max;
     nozzles:S.items.filter(x=>x.type===&quot;nozzle&quot;).length,manholes:S.items.filter(x=>x.type===&quot;manhole&quot;).length,vents:S.items.filter(x=>x.type===&quot;vent&quot;).length,ladders:S.items.filter(x=>x.type===&quot;ladder&quot;).length};
 }
 const fmt=(n,d)=>Number(n).toLocaleString(&quot;en-MY&quot;,{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
-function bomDefs(){const b=bom();const lf=S.items.filter(x=>x.type===&quot;ladder&quot;).length*S.height*4;
+function bomDefs(){const b=bom();const lf=S.height*4;/* ladder length auto-follows tank height (ft), not the placed-ladder count */
   return [[&quot;__h&quot;,&quot;PANELS&quot;],
     [&quot;Manhole&quot;,&quot;roof opening&quot;,b.manhole,S.rate.w15,&quot;man&quot;],
     [&quot;1.5 mm panel&quot;,&quot;roof = L·W-1&quot;,b.roof,S.rate.w15,&quot;p15&quot;],
@@ -700,9 +702,9 @@ function bomDefs(){const b=bom();const lf=S.items.filter(x=>x.type===&quot;ladde
     [&quot;3/8×3/4 BN&quot;,&quot;&quot;,b.bolt38b,null,&quot;bolt38b&quot;],
     [&quot;3/8 washer&quot;,&quot;(L+W)·2·10&quot;,b.wash38,null,&quot;wash38&quot;],
     [&quot;__h&quot;,&quot;LADDER &amp; VENT&quot;],
-    [&quot;Ladder external&quot;,&quot;ft&quot;,lf,null,&quot;ladderExt&quot;],
-    [&quot;Ladder internal&quot;,&quot;ft&quot;,lf,null,&quot;ladderInt&quot;],
-    [&quot;Ladder WLI&quot;,&quot;ft&quot;,lf,null,&quot;ladderWli&quot;],
+    [&quot;Ladder external (ft)&quot;,&quot;= tank height&quot;,lf,null,&quot;ladderExt&quot;],
+    [&quot;Ladder internal (ft)&quot;,&quot;= tank height&quot;,lf,null,&quot;ladderInt&quot;],
+    [&quot;Ladder WLI (ft)&quot;,&quot;= tank height&quot;,lf,null,&quot;ladderWli&quot;],
     [&quot;Air vent&quot;,&quot;&quot;,b.vent,null,&quot;vent&quot;]];
 }
 function escA(s){return String(s==null?&quot;&quot;:s).replace(/&amp;/g,&quot;&amp;amp;&quot;).replace(/&quot;/g,&quot;&amp;quot;&quot;).replace(/</g,&quot;&amp;lt;&quot;);}
@@ -833,11 +835,11 @@ function exportReport(){
 const KEY_P=&quot;jt_studio_projects&quot;,KEY_T=&quot;jt_studio_templates&quot;;
 function readStore(k){try{return JSON.parse(localStorage.getItem(k)||&quot;[]&quot;);}catch(e){return [];}}
 function writeStore(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function serialize(){return {cols:S.cols,rows:S.rows,height:S.height,levels:S.levels,levelsOn:S.levelsOn,full:S.full,lshape:S.lshape,parts:S.parts,blocks:S.blocks,labels:S.labels,lines:S.lines,circles:S.circles,sgl:S.sgl,dblA:S.dblA,dblB:S.dblB,pcol:S.pcol,items:S.items,rate:S.rate,price:S.price,qty:S.qty,bom:S.bom,roof:S.roof,cutaway:S.cutaway,footprint:S.footprint,dims:S.dims};}
-function applyState(o){S.cols=o.cols;S.rows=o.rows;S.height=o.height;S.levels=o.levels||{};S.levelsOn=o.levelsOn||{};S.full=o.full!==false;S.lshape=o.lshape!==false;S.parts=o.parts||[];S.blocks=(o.blocks||[]).reduce(function(acc,b){if(typeof b===&quot;string&quot;)acc.push(b);else if(b&amp;&amp;b.c0!=null){for(var cc=b.c0;cc<b.c1;cc++)for(var rr=b.r0;rr<b.r1;rr++)acc.push(cc+&quot;,&quot;+rr);}return acc;},[]);S.labels=o.labels||[];S.lines=o.lines||[];S.circles=o.circles||[];S.pcol=o.pcol||&quot;#1f9e57&quot;;S.sgl=o.sgl||&quot;#d9a022&quot;;S.dblA=o.dblA||&quot;#d23b3b&quot;;S.dblB=o.dblB||&quot;#2563eb&quot;;[&quot;colSgl&quot;,&quot;colDblA&quot;,&quot;colDblB&quot;].forEach((id,k)=>{const el=document.getElementById(id);if(el)el.value=[S.sgl,S.dblA,S.dblB][k];});S.items=o.items||[];S.rate=Object.assign({w15:21.15,w30:42.3,rmKg:6.5,boltsPanel:64,rmBolt:0.85,stayKg:9,fb:1,rollM:10,rmRoll:22.5},o.rate||{});S.price=Object.assign({man:0,p15:0,p30:0,cleatA:0,cleatB:0,cleatC:0,cleatC1:0,trussPipe:0,trussAngle:0,stay:0,but340:0,but545:0,boltM14:0,washM14:0,bolt58:0,wash58:0,bolt38a:0,bolt38b:0,wash38:0,ladderExt:0,ladderInt:0,ladderWli:0,vent:0},o.price||{});S.qty=Object.assign({cleatA:0,cleatB:0,cleatC:0,cleatC1:0,truss1:0,truss2:0},o.qty||{});S.bom=o.bom||{over:{},del:{},extra:[]};bomNormalize();[&quot;roof&quot;,&quot;cutaway&quot;,&quot;footprint&quot;,&quot;dims&quot;].forEach(k=>{if(k in o)S[k]=o[k];});
+function serialize(){return {cols:S.cols,rows:S.rows,height:S.height,levels:S.levels,levelsOn:S.levelsOn,full:S.full,lshape:S.lshape,parts:S.parts,blocks:S.blocks,labels:S.labels,lines:S.lines,circles:S.circles,sgl:S.sgl,dblA:S.dblA,dblB:S.dblB,pcol:S.pcol,items:S.items,rate:S.rate,price:S.price,qty:S.qty,bom:S.bom,roof:S.roof,cutaway:S.cutaway,footprint:S.footprint,dims:S.dims,halfStay:S.halfStay};}
+function applyState(o){S.cols=o.cols;S.rows=o.rows;S.height=o.height;S.levels=o.levels||{};S.levelsOn=o.levelsOn||{};S.full=o.full!==false;S.lshape=o.lshape!==false;S.parts=o.parts||[];S.blocks=(o.blocks||[]).reduce(function(acc,b){if(typeof b===&quot;string&quot;)acc.push(b);else if(b&amp;&amp;b.c0!=null){for(var cc=b.c0;cc<b.c1;cc++)for(var rr=b.r0;rr<b.r1;rr++)acc.push(cc+&quot;,&quot;+rr);}return acc;},[]);S.labels=o.labels||[];S.lines=o.lines||[];S.circles=o.circles||[];S.pcol=o.pcol||&quot;#1f9e57&quot;;S.sgl=o.sgl||&quot;#d9a022&quot;;S.dblA=o.dblA||&quot;#d23b3b&quot;;S.dblB=o.dblB||&quot;#2563eb&quot;;[&quot;colSgl&quot;,&quot;colDblA&quot;,&quot;colDblB&quot;].forEach((id,k)=>{const el=document.getElementById(id);if(el)el.value=[S.sgl,S.dblA,S.dblB][k];});S.items=o.items||[];S.rate=Object.assign({w15:21.15,w30:42.3,rmKg:6.5,boltsPanel:64,rmBolt:0.85,stayKg:9,fb:1,rollM:10,rmRoll:22.5},o.rate||{});S.price=Object.assign({man:0,p15:0,p30:0,cleatA:0,cleatB:0,cleatC:0,cleatC1:0,trussPipe:0,trussAngle:0,stay:0,but340:0,but545:0,boltM14:0,washM14:0,bolt58:0,wash58:0,bolt38a:0,bolt38b:0,wash38:0,ladderExt:0,ladderInt:0,ladderWli:0,vent:0},o.price||{});S.qty=Object.assign({cleatA:0,cleatB:0,cleatC:0,cleatC1:0,truss1:0,truss2:0},o.qty||{});S.bom=o.bom||{over:{},del:{},extra:[]};bomNormalize();[&quot;roof&quot;,&quot;cutaway&quot;,&quot;footprint&quot;,&quot;dims&quot;,&quot;halfStay&quot;].forEach(k=>{if(k in o)S[k]=o[k];});
   initLevels();clampSize();
   [&quot;cutChk&quot;,&quot;cutaway&quot;],[&quot;roofChk&quot;,&quot;roof&quot;],[&quot;footChk&quot;,&quot;footprint&quot;],[&quot;dimChk&quot;,&quot;dims&quot;],[&quot;lshapeChk&quot;,&quot;lshape&quot;];
-  document.getElementById(&quot;cutChk&quot;).checked=S.cutaway;document.getElementById(&quot;roofChk&quot;).checked=S.roof;document.getElementById(&quot;footChk&quot;).checked=S.footprint;document.getElementById(&quot;dimChk&quot;).checked=S.dims;var _ls=document.getElementById(&quot;lshapeChk&quot;);if(_ls)_ls.checked=S.lshape;document.getElementById(&quot;fullChk&quot;).checked=S.full;
+  document.getElementById(&quot;cutChk&quot;).checked=S.cutaway;document.getElementById(&quot;roofChk&quot;).checked=S.roof;document.getElementById(&quot;footChk&quot;).checked=S.footprint;document.getElementById(&quot;dimChk&quot;).checked=S.dims;var _ls=document.getElementById(&quot;lshapeChk&quot;);if(_ls)_ls.checked=S.lshape;var _hs=document.getElementById(&quot;halfStayChk&quot;);if(_hs)_hs.checked=S.halfStay;document.getElementById(&quot;fullChk&quot;).checked=S.full;
   [[&quot;r_w15&quot;,&quot;w15&quot;],[&quot;r_w30&quot;,&quot;w30&quot;],[&quot;r_rmKg&quot;,&quot;rmKg&quot;],[&quot;r_boltsPanel&quot;,&quot;boltsPanel&quot;],[&quot;r_rmBolt&quot;,&quot;rmBolt&quot;],[&quot;r_stayKg&quot;,&quot;stayKg&quot;],[&quot;r_rollM&quot;,&quot;rollM&quot;],[&quot;r_rmRoll&quot;,&quot;rmRoll&quot;],[&quot;r_fb&quot;,&quot;fb&quot;]].forEach(([id,k])=>document.getElementById(id).value=S.rate[k]);
   sizeVals();editLvlBtns();viewLvlList();renderPlaced();drawPlan();render();if(S.step===3)renderBOM();}
 function saveAs(kind){const name=prompt((kind===&quot;t&quot;?&quot;Template&quot;:&quot;Project&quot;)+&quot; name:&quot;);if(!name)return;const key=kind===&quot;t&quot;?KEY_T:KEY_P;const arr=readStore(key);const ex=arr.findIndex(x=>x.name===name);const rec={name,date:new Date().toISOString().slice(0,10),state:serialize()};if(ex>=0)arr[ex]=rec;else arr.push(rec);writeStore(key,arr);alert((kind===&quot;t&quot;?&quot;Template&quot;:&quot;Project&quot;)+' &quot;'+name+'&quot; saved.');}
@@ -879,7 +881,7 @@ document.getElementById(&quot;stepTab3&quot;).addEventListener(&quot;click&quot;
 /* ---------- professional tools: history, selection, export ---------- */
 S.sel=null;
 let UNDO=[],REDO=[];
-function snap(){return JSON.stringify({cols:S.cols,rows:S.rows,height:S.height,levels:S.levels,levelsOn:S.levelsOn,full:S.full,sgl:S.sgl,dblA:S.dblA,dblB:S.dblB,items:S.items,rate:S.rate,price:S.price,qty:S.qty,bom:S.bom,roof:S.roof,cutaway:S.cutaway,footprint:S.footprint,dims:S.dims});}
+function snap(){return JSON.stringify({cols:S.cols,rows:S.rows,height:S.height,levels:S.levels,levelsOn:S.levelsOn,full:S.full,sgl:S.sgl,dblA:S.dblA,dblB:S.dblB,items:S.items,rate:S.rate,price:S.price,qty:S.qty,bom:S.bom,roof:S.roof,cutaway:S.cutaway,footprint:S.footprint,dims:S.dims,halfStay:S.halfStay});}
 function commit(){UNDO.push(snap());if(UNDO.length>60)UNDO.shift();REDO=[];updUndo();}
 function applySnap(str){applyState(JSON.parse(str));S.sel=null;renderProps();}
 function doUndo(){if(!UNDO.length)return;REDO.push(snap());applySnap(UNDO.pop());updUndo();}
