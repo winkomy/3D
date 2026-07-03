@@ -971,7 +971,7 @@ requestAnimationFrame(()=>{const r=SCENE.getBoundingClientRect();W=r.width||600;
 </html>
 "></iframe></div></div><script>(function(){var $=function(i){return document.getElementById(i);};
 function activeDrawing(){try{var p=JSON.parse(localStorage.getItem("tankproj")||"null");if(p&&p.drawings&&p.drawings.length)return p.drawings.filter(function(x){return x.id===p.activeId;})[0]||p.drawings[0];}catch(e){}return null;}
-function jobSize(){var d=activeDrawing();return(d&&d.cols&&d.rows&&d.height)?{cols:d.cols,rows:d.rows,height:d.height}:null;} 
+function jobSize(){var d=activeDrawing();return(d&&d.cols&&d.rows&&d.height)?{cols:d.cols,rows:d.rows,height:d.height}:null;}
 function keyOf(s){return s?(s.cols+"x"+s.rows+"x"+s.height):"none";}
 function post(fr,m){try{fr&&fr.contentWindow&&fr.contentWindow.postMessage(m,"*");}catch(e){}}
 function chip(el,s){if(!el)return;el.innerHTML=s?('<i></i> Linked to ERP &middot; '+(s.cols*4)+'\u2032\u00d7'+(s.rows*4)+'\u2032\u00d7'+(s.height*4)+'\u2032'):'<i style="background:#b6bfca;box-shadow:none"></i> independent';}
